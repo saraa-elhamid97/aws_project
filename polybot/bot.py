@@ -3,6 +3,7 @@ from loguru import logger
 import os
 import time
 from telebot.types import InputFile
+import boto3
 
 
 class Bot:
@@ -68,10 +69,32 @@ class Bot:
 class ObjectDetectionBot(Bot):
     def handle_message(self, msg):
         logger.info(f'Incoming message: {msg}')
-
-        if self.is_current_msg_photo(msg):
-            photo_path = self.download_user_photo(msg)
-
-            # TODO upload the photo to S3
-            # TODO send a job to the SQS queue
-            # TODO send message to the Telegram end-user (e.g. Your image is being processed. Please wait...)
+        # images_bucket = os.environ['BUCKET_NAME']
+        images_bucket = 'saraa-bucket'
+        chat_id = msg['chat']['id']
+        try:
+            if self.is_current_msg_photo(msg):
+                # Send message to the Telegram end-user
+                processing_message = "Your image is being processed for object detection. Please be patient."
+                self.send_text(chat_id, processing_message)
+                # Start processing the photo
+                photo_path = self.download_user_photo(msg)
+                photo_name = photo_path.split('/')[1]
+                # Upload the file to S3
+                s3 = boto3.client('s3', region_name='us-east-2')
+                s3.upload_file(photo_path, images_bucket, photo_name)
+                # Send a job to the SQS queue
+                queue_name = 'saraa-predictionReq-queue'
+                sqs = boto3.client('sqs', region_name='us-east-2')
+                prediction_req = f'{photo_name} {chat_id}'
+                sqs.send_message(QueueUrl=queue_name, MessageBody=prediction_req)
+            elif msg["text"] == '/start':
+                welcome_msg = ('Welcome to the "Image Prediction World". \nIn order to start the prediction please '
+                               'send me a photo.')
+                self.send_text(chat_id, welcome_msg)
+            else:
+                ...
+        except Exception as e:
+            logger.error(f'Error processing message: {e}')
+            error_message = "An error occurred while processing your request. Please try again later."
+            self.send_text(msg['chat']['id'], error_message)
