@@ -17,12 +17,10 @@ try:
     secret_string = secret_response['SecretString']
     secret_data = json.loads(secret_string)
     TELEGRAM_TOKEN = secret_data['TELEGRAM_TOKEN']
-    print(f'TELE TOKEN= {TELEGRAM_TOKEN}')
 except Exception as e:
     print(f'Error loading telegram token: {e}')
 
-# TELEGRAM_APP_URL = os.environ['TELEGRAM_APP_URL']
-TELEGRAM_APP_URL = 'https://generally-fluent-sawfish.ngrok-free.app/'
+TELEGRAM_APP_URL = os.environ['TELEGRAM_APP_URL']
 dynamodb = boto3.client('dynamodb', region_name='us-east-2')
 
 @app.route('/', methods=['GET'])

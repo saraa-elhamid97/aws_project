@@ -7,7 +7,6 @@ import boto3
 
 
 class Bot:
-
     def __init__(self, token, telegram_chat_url):
         # create a new instance of the TeleBot class.
         # all communication with Telegram servers are done using self.telegram_bot_client
@@ -16,10 +15,9 @@ class Bot:
         # remove any existing webhooks configured in Telegram servers
         self.telegram_bot_client.remove_webhook()
         time.sleep(0.5)
-
         # set the webhook URL
-        self.telegram_bot_client.set_webhook(url=f'{telegram_chat_url}/{token}/', timeout=60)
-
+        self.telegram_bot_client.set_webhook(url=f'{telegram_chat_url}/{token}/', certificate=open('self-signed-certificate.pem', 'r'), timeout=60)
+        logger.info(f'telegram_chat_url:\n\n{telegram_chat_url}***token: {token}')
         logger.info(f'Telegram Bot information\n\n{self.telegram_bot_client.get_me()}')
 
     def send_text(self, chat_id, text):
@@ -69,8 +67,8 @@ class Bot:
 class ObjectDetectionBot(Bot):
     def handle_message(self, msg):
         logger.info(f'Incoming message: {msg}')
-        # images_bucket = os.environ['BUCKET_NAME']
-        images_bucket = 'saraa-bucket'
+        images_bucket = os.environ['BUCKET_NAME']
+        queue_name = os.environ['SQS_QUEUE_NAME']
         chat_id = msg['chat']['id']
         try:
             if self.is_current_msg_photo(msg):
@@ -84,7 +82,6 @@ class ObjectDetectionBot(Bot):
                 s3 = boto3.client('s3', region_name='us-east-2')
                 s3.upload_file(photo_path, images_bucket, photo_name)
                 # Send a job to the SQS queue
-                queue_name = 'saraa-predictionReq-queue'
                 sqs = boto3.client('sqs', region_name='us-east-2')
                 prediction_req = f'{photo_name} {chat_id}'
                 sqs.send_message(QueueUrl=queue_name, MessageBody=prediction_req)

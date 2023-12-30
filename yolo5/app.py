@@ -8,10 +8,8 @@ import boto3
 import requests
 
 
-# images_bucket = os.environ['BUCKET_NAME']
-# queue_name = os.environ['SQS_QUEUE_NAME']
-queue_name = 'saraa-predictionReq-queue'
-images_bucket = 'saraa-bucket'
+images_bucket = os.environ['BUCKET_NAME']
+queue_name = os.environ['SQS_QUEUE_NAME']
 sqs_client = boto3.client('sqs', region_name='us-east-2')
 dynamodb = boto3.client('dynamodb', region_name='us-east-2')
 
@@ -116,7 +114,7 @@ def consume():
                 )
                 logger.info(f'prediction summary successfully stored in dynamodb table')
                 # Perform a GET request to Polybot to `/results` endpoint
-                requests.get(f"http://polybot:8443/results?predictionId={prediction_id}")
+                requests.get(f"saraa-prediction-lb-24170205.us-east-2.elb.amazonaws.com/results?predictionId={prediction_id}")
                 # Delete the message from the queue as the job is considered as DONE
                 sqs_client.delete_message(QueueUrl=queue_name, ReceiptHandle=receipt_handle)
 
