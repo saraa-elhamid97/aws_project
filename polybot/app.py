@@ -4,6 +4,7 @@ import os
 from bot import ObjectDetectionBot
 import boto3
 import json
+from loguru import logger
 app = flask.Flask(__name__)
 
 
@@ -38,6 +39,7 @@ def webhook():
 @app.route(f'/results/', methods=['GET'])
 def results():
     prediction_id = request.args.get('predictionId')
+    logger.info(f'Prediction Id: {prediction_id}')
     # Retrieve results from DynamoDB and send to the end-user using the prediction_id
     response = dynamodb.get_item(
         TableName='saraa-detected-objects',

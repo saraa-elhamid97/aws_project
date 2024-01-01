@@ -115,7 +115,10 @@ def consume():
                 )
                 logger.info(f'prediction summary successfully stored in dynamodb table')
                 # Perform a GET request to Polybot to `/results` endpoint
-                requests.get(f"https://{telegram_url}/results?predictionId={prediction_id}", verify=False)
+                url = f"{telegram_url}/results"
+                params = {"predictionId": prediction_id}
+                response = requests.get(url, params=params, verify=False)
+                logger.info(f'get request successfully sent to polybot')
                 # Delete the message from the queue as the job is considered as DONE
                 sqs_client.delete_message(QueueUrl=queue_name, ReceiptHandle=receipt_handle)
 
