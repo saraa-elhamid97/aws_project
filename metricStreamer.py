@@ -1,9 +1,7 @@
 import boto3
-from loguru import logger
 
 
-def metric_streamer():
-    logger.info("Lambda execution started.")
+def lambda_handler(event, context):
     sqs_client = boto3.resource('sqs', region_name='us-east-2')
     asg_client = boto3.client('autoscaling', region_name='us-east-2')
     cloudwatch_client = boto3.client('cloudwatch', region_name='us-east-2')
@@ -21,10 +19,9 @@ def metric_streamer():
     else:
         asg_size = asg_groups[0]['DesiredCapacity']
 
-    backlog_per_instance = msgs_in_queue / asg_size
+    backlog_per_instance = 7  if msgs_in_queue > 0 and asg_size == 0 else msgs_in_queue / asg_size
 
     # Send metric to CloudWatch
-    logger.info(f"Sending metric to CloudWatch. Backlog per instance: {backlog_per_instance}")
     cloudwatch_client.put_metric_data(
         Namespace='saraa-scale-in-out',
         MetricData=[
@@ -35,4 +32,3 @@ def metric_streamer():
             },
         ]
     )
-    logger.info("Lambda execution completed successfully.")
